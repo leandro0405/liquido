@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Animação 3D - Líquidos Proporcionais</title>
+    <title>Animação 3D - Copos Retos com Reflexo</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #222; }
         canvas { display: block; }
@@ -24,40 +24,55 @@
 
     // 1. CENA E FUNDO
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color('#222');
+    scene.background = new THREE.Color('#111'); // Fundo levemente mais escuro para destacar o reflexo
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
+    // Configurações para melhor renderização de brilho e reflexo
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
     document.body.appendChild(renderer.domElement);
 
-    // 2. LUZES (Focadas nos objetos)
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    // 2. LUZES (Ajustadas para criar reflexos)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
     scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
-    directionalLight.position.set(2, 5, 5);
-    scene.add(directionalLight);
+    const mainLight = new THREE.DirectionalLight(0xffffff, 2);
+    mainLight.position.set(5, 10, 7);
+    scene.add(mainLight);
+
+    // Luz pontual para criar o brilho "especular" no vidro
+    const pointLight = new THREE.PointLight(0xffffff, 15);
+    pointLight.position.set(-2, 2, 4);
+    scene.add(pointLight);
 
     // 3. MATERIAIS
     const glassMaterial = new THREE.MeshPhysicalMaterial({
         color: 0xffffff,
-        transmission: 0.9,
-        thickness: 0.2,
-        roughness: 0.05,
+        transmission: 0.95, // Alta transparência
+        roughness: 0.02,    // Superfície lisa
+        ior: 1.5,           // Índice de refração do vidro
+        thickness: 0.1,     // Espessura do vidro
+        specularIntensity: 1,
+        clearcoat: 1.0,     // Adiciona camada de brilho extra
+        clearcoatRoughness: 0.05,
         transparent: true,
-        opacity: 0.4
+        opacity: 0.5
     });
 
-    const yellowMaterial = new THREE.MeshStandardMaterial({ color: '#E0BD1F', roughness: 0.2 });
-    const blueMaterial = new THREE.MeshStandardMaterial({ color: '#1FA4E0', roughness: 0.2 });
+    const yellowMaterial = new THREE.MeshStandardMaterial({ color: '#E0BD1F', roughness: 0.3 });
+    const blueMaterial = new THREE.MeshStandardMaterial({ color: '#1FA4E0', roughness: 0.3 });
 
-    // 4. GEOMETRIAS
+    // 4. GEOMETRIAS (Copo Reto)
     const cupHeight = 3;
-    const cupGeo = new THREE.CylinderGeometry(1, 0.8, cupHeight, 48, 1, true);
-    const bottomGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.05, 48);
-    const liquidGeo = new THREE.CylinderGeometry(0.95, 0.76, 1, 48); // Geometria base do líquido
+    const radius = 1; // Mesmo raio em cima e embaixo para ser reto
+    
+    // Copo reto (openEnded: true para não ter tampa)
+    const cupGeo = new THREE.CylinderGeometry(radius, radius, cupHeight, 64, 1, true);
+    const bottomGeo = new THREE.CylinderGeometry(radius, radius, 0.05, 64);
+    const liquidGeo = new THREE.CylinderGeometry(radius - 0.05, radius - 0.05, 1, 64);
 
     // Função para criar o conjunto copo + líquido
     function createCup(xPos, liquidMat) {
@@ -65,6 +80,7 @@
         
         // Vidro lateral
         const glass = new THREE.Mesh(cupGeo, glassMaterial);
+        
         // Fundo do vidro
         const bottom = new THREE.Mesh(bottomGeo, glassMaterial);
         bottom.position.y = -cupHeight / 2;
@@ -76,7 +92,7 @@
         group.position.x = xPos;
         
         scene.add(group);
-        scene.add(liquid); // Líquido fora do grupo para facilitar escala global
+        scene.add(liquid);
         liquid.position.x = xPos;
         
         return liquid;
@@ -85,45 +101,16 @@
     const liquidLeft = createCup(-2, yellowMaterial);
     const liquidRight = createCup(2, blueMaterial);
 
-    camera.position.set(0, 1, 8);
+    camera.position.set(0, 2, 8);
+    camera.lookAt(0, 0, 0);
 
-    // 5. ANIMAÇÃO LOGÍCA
+    // 5. ANIMAÇÃO
     function animate() {
         requestAnimationFrame(animate);
 
         const time = Date.now() * 0.002;
         
-        // Definindo limites para o líquido não sair do copo
-        // Min: 0.1 (quase vazio) | Max: 2.8 (quase cheio, copo tem 3.0)
         const minHeight = 0.1;
         const maxHeight = 2.8;
         const range = (maxHeight - minHeight) / 2;
         const center = (maxHeight + minHeight) / 2;
-
-        // Oscilação inversa perfeita
-        const offset = Math.sin(time) * range;
-        const h1 = center + offset;
-        const h2 = center - offset;
-
-        // Aplicação da Escala (Y)
-        liquidLeft.scale.y = h1;
-        liquidRight.scale.y = h2;
-
-        // Ajuste de Posição (Y) para o líquido crescer a partir da base
-        // A base interna do copo está em -1.5
-        liquidLeft.position.y = -1.5 + (h1 / 2);
-        liquidRight.position.y = -1.5 + (h2 / 2);
-
-        renderer.render(scene, camera);
-    }
-
-    window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-
-    animate();
-</script>
-</body>
-</html>
