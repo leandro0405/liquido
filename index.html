@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cena 3D: Líquidos Infinitos</title>
+    <title>Animação 3D - Líquidos Proporcionais</title>
     <style>
-        body { margin: 0; overflow: hidden; background: radial-gradient(circle, #2c3e50 0%, #000000 100%); }
+        body { margin: 0; overflow: hidden; background-color: #222; }
         canvas { display: block; }
     </style>
 </head>
@@ -22,118 +22,97 @@
 <script type="module">
     import * as THREE from 'three';
 
-    // CONFIGURAÇÃO BÁSICA
+    // 1. CENA E FUNDO
     const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#222');
+
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.shadowMap.enabled = true; // Habilitar sombras
     document.body.appendChild(renderer.domElement);
 
-    // ILUMINAÇÃO DE ESTÚDIO
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    // 2. LUZES (Focadas nos objetos)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
 
-    const light1 = new THREE.PointLight(0xffffff, 50);
-    light1.position.set(5, 5, 5);
-    light1.castShadow = true;
-    scene.add(light1);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
+    directionalLight.position.set(2, 5, 5);
+    scene.add(directionalLight);
 
-    const light2 = new THREE.PointLight(0x00aaff, 30);
-    light2.position.set(-5, 2, -2);
-    scene.add(light2);
-
-    // MATERIAIS
-    // Vidro (MeshPhysicalMaterial é o segredo para a beleza)
+    // 3. MATERIAIS
     const glassMaterial = new THREE.MeshPhysicalMaterial({
         color: 0xffffff,
-        metalness: 0,
+        transmission: 0.9,
+        thickness: 0.2,
         roughness: 0.05,
-        transmission: 0.95, // Transparência física
-        thickness: 0.5,     // Simula espessura do vidro
         transparent: true,
-        opacity: 1
+        opacity: 0.4
     });
 
-    const blueLiquidMat = new THREE.MeshStandardMaterial({ 
-        color: 0x0077ff, 
-        emissive: 0x0033aa,
-        roughness: 0.1,
-        metalness: 0.3
-    });
+    const yellowMaterial = new THREE.MeshStandardMaterial({ color: '#E0BD1F', roughness: 0.2 });
+    const blueMaterial = new THREE.MeshStandardMaterial({ color: '#1FA4E0', roughness: 0.2 });
 
-    const orangeLiquidMat = new THREE.MeshStandardMaterial({ 
-        color: 0xff4400, 
-        emissive: 0x662200,
-        roughness: 0.1,
-        metalness: 0.3
-    });
+    // 4. GEOMETRIAS
+    const cupHeight = 3;
+    const cupGeo = new THREE.CylinderGeometry(1, 0.8, cupHeight, 48, 1, true);
+    const bottomGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.05, 48);
+    const liquidGeo = new THREE.CylinderGeometry(0.95, 0.76, 1, 48); // Geometria base do líquido
 
-    // GEOMETRIAS
-    const cupGeo = new THREE.CylinderGeometry(1, 0.8, 3, 48, 1, true); // Copo
-    const liquidGeo = new THREE.CylinderGeometry(0.92, 0.78, 1, 48);   // Líquido (um pouco menor que o copo)
-    const baseGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.1, 48);     // Fundo do copo
+    // Função para criar o conjunto copo + líquido
+    function createCup(xPos, liquidMat) {
+        const group = new THREE.Group();
+        
+        // Vidro lateral
+        const glass = new THREE.Mesh(cupGeo, glassMaterial);
+        // Fundo do vidro
+        const bottom = new THREE.Mesh(bottomGeo, glassMaterial);
+        bottom.position.y = -cupHeight / 2;
+        
+        // Líquido
+        const liquid = new THREE.Mesh(liquidGeo, liquidMat);
+        
+        group.add(glass, bottom);
+        group.position.x = xPos;
+        
+        scene.add(group);
+        scene.add(liquid); // Líquido fora do grupo para facilitar escala global
+        liquid.position.x = xPos;
+        
+        return liquid;
+    }
 
-    // CONSTRUÇÃO DO COPO 1 (AZUL)
-    const cup1 = new THREE.Mesh(cupGeo, glassMaterial);
-    const bottom1 = new THREE.Mesh(baseGeo, glassMaterial);
-    bottom1.position.y = -1.5;
-    const glassGroup1 = new THREE.Group();
-    glassGroup1.add(cup1, bottom1);
-    glassGroup1.position.x = -2;
-    scene.add(glassGroup1);
+    const liquidLeft = createCup(-2, yellowMaterial);
+    const liquidRight = createCup(2, blueMaterial);
 
-    const liquid1 = new THREE.Mesh(liquidGeo, blueLiquidMat);
-    liquid1.position.x = -2;
-    scene.add(liquid1);
+    camera.position.set(0, 1, 8);
 
-    // CONSTRUÇÃO DO COPO 2 (LARANJA)
-    const cup2 = new THREE.Mesh(cupGeo, glassMaterial);
-    const bottom2 = new THREE.Mesh(baseGeo, glassMaterial);
-    bottom2.position.y = -1.5;
-    const glassGroup2 = new THREE.Group();
-    glassGroup2.add(cup2, bottom2);
-    glassGroup2.position.x = 2;
-    scene.add(glassGroup2);
-
-    const liquid2 = new THREE.Mesh(liquidGeo, orangeLiquidMat);
-    liquid2.position.x = 2;
-    scene.add(liquid2);
-
-    // CHÃO REFLEXIVO
-    const floorGeo = new THREE.PlaneGeometry(20, 20);
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.2 });
-    const floor = new THREE.Mesh(floorGeo, floorMat);
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = -1.6;
-    floor.receiveShadow = true;
-    scene.add(floor);
-
-    camera.position.set(0, 2, 8);
-    camera.lookAt(0, 0, 0);
-
-    // ANIMAÇÃO
+    // 5. ANIMAÇÃO LOGÍCA
     function animate() {
         requestAnimationFrame(animate);
 
-        const time = Date.now() * 0.0015;
+        const time = Date.now() * 0.002;
         
-        // Cálculo dos níveis (Proporcionalidade inversa)
-        // Range de altura vai de 0.2 a 2.8
-        const sinWave = (Math.sin(time) + 1) / 2; // Normaliza entre 0 e 1
-        
-        const height1 = 0.2 + (sinWave * 2.6);
-        const height2 = 2.8 - (sinWave * 2.6); // Exatamente o oposto
+        // Definindo limites para o líquido não sair do copo
+        // Min: 0.1 (quase vazio) | Max: 2.8 (quase cheio, copo tem 3.0)
+        const minHeight = 0.1;
+        const maxHeight = 2.8;
+        const range = (maxHeight - minHeight) / 2;
+        const center = (maxHeight + minHeight) / 2;
 
-        // Aplicar Escala
-        liquid1.scale.y = height1;
-        liquid2.scale.y = height2;
+        // Oscilação inversa perfeita
+        const offset = Math.sin(time) * range;
+        const h1 = center + offset;
+        const h2 = center - offset;
 
-        // Ajustar Posição (para o líquido crescer do fundo para cima)
-        // O fundo está em -1.5. A posição central do líquido deve ser -1.5 + metade da altura.
-        liquid1.position.y = -1.5 + (height1 / 2);
-        liquid2.position.y = -1.5 + (height2 / 2);
+        // Aplicação da Escala (Y)
+        liquidLeft.scale.y = h1;
+        liquidRight.scale.y = h2;
+
+        // Ajuste de Posição (Y) para o líquido crescer a partir da base
+        // A base interna do copo está em -1.5
+        liquidLeft.position.y = -1.5 + (h1 / 2);
+        liquidRight.position.y = -1.5 + (h2 / 2);
 
         renderer.render(scene, camera);
     }
