@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animação de Líquidos 3D</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #1a1a1a; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+
+<script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+        }
+    }
+</script>
+
+<script type="module">
+    import * as THREE from 'three';
+
+    // 1. Configuração da Cena
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // 2. Iluminação
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+    const pointLight = new THREE.PointLight(0xffffff, 15);
+    pointLight.position.set(5, 5, 5);
+    scene.add(pointLight);
+
+    // 3. Materiais
+    const glassMaterial = new THREE.MeshPhongMaterial({
+        color: 0xffffff,
+        opacity: 0.3,
+        transparent: true,
+        shininess: 100
+    });
+
+    const blueMaterial = new THREE.MeshPhongMaterial({ color: 0x00aaff, shininess: 80 });
+    const orangeMaterial = new THREE.MeshPhongMaterial({ color: 0xff8800, shininess: 80 });
+
+    // 4. Criação dos Copos e Líquidos
+    const glassGeo = new THREE.CylinderGeometry(1, 0.8, 3, 32, 1, true); // Copo aberto no topo
+    const liquidGeo = new THREE.CylinderGeometry(0.95, 0.75, 1, 32); // Altura inicial 1
+
+    // Grupo Copo 1 (Azul)
+    const glass1 = new THREE.Mesh(glassGeo, glassMaterial);
+    glass1.position.x = -2;
+    scene.add(glass1);
+
+    const liquid1 = new THREE.Mesh(liquidGeo, blueMaterial);
+    liquid1.position.x = -2;
+    scene.add(liquid1);
+
+    // Grupo Copo 2 (Laranja)
+    const glass2 = new THREE.Mesh(glassGeo, glassMaterial);
+    glass2.position.x = 2;
+    scene.add(glass2);
+
+    const liquid2 = new THREE.Mesh(liquidGeo, orangeMaterial);
+    liquid2.position.x = 2;
+    scene.add(liquid2);
+
+    camera.position.z = 7;
+    camera.position.y = 2;
+    camera.lookAt(0, 0, 0);
+
+    // 5. Animação
+    function animate() {
+        requestAnimationFrame(animate);
+
+        const time = Date.now() * 0.002;
+        
+        // Oscilação entre 0.1 e 2.8 (altura do líquido)
+        // Math.sin retorna entre -1 e 1. Ajustamos para o range desejado.
+        const level1 = (Math.sin(time) + 1) * 1.35 + 0.1; 
+        const level2 = (Math.cos(time + Math.PI/2) + 1) * 1.35 + 0.1; 
+        // Usar seno e cosseno defasados garante que enquanto um sobe o outro desce
+
+        // Aplicando a escala na altura (Y)
+        liquid1.scale.y = level1;
+        liquid2.scale.y = (2.9 - level1); // Inverso proporcional direto
+
+        // Ajustando a posição Y para o líquido não "flutuar" (manter na base do copo)
+        // Como o pivot do cilindro é no centro, subimos metade da altura atual
+        liquid1.position.y = -1.5 + (liquid1.scale.y / 2);
+        liquid2.position.y = -1.5 + (liquid2.scale.y / 2);
+
+        // Rotação leve para dar um efeito 3D melhor
+        scene.rotation.y += 0.005;
+
+        renderer.render(scene, camera);
+    }
+
+    // Ajuste de janela
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    animate();
+</script>
+</body>
+</html>
