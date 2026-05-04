@@ -3,128 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Animação 3D - Copos Retos com Reflexo</title>
+    <title>Recipiente 3D Pro</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #222; }
+        body { margin: 0; overflow: hidden; background: radial-gradient(circle, #333 0%, #111 100%); }
         canvas { display: block; }
+        .info { position: absolute; top: 20px; width: 100%; text-align: center; color: white; font-family: sans-serif; pointer-events: none; text-transform: uppercase; letter-spacing: 2px; opacity: 0.6; }
     </style>
 </head>
 <body>
+<div class="info">Arraste para girar | Scroll para Zoom</div>
 
 <script type="importmap">
     {
         "imports": {
-            "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
         }
     }
 </script>
 
 <script type="module">
     import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-    // 1. CENA E FUNDO
+    // 1. CONFIGURAÇÃO DA CENA
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color('#111'); // Fundo um pouco mais escuro para destacar o brilho
-
+    
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    camera.position.set(5, 5, 10);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
-    // Configurações de iluminação para reflexos melhores
+    renderer.shadowMap.enabled = true; // Ativa sombras
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     document.body.appendChild(renderer.domElement);
 
-    // Gerar um mapa de ambiente simples para haver reflexo no vidro
-    const pmremGenerator = new THREE.PMREMGenerator(renderer);
-    scene.environment = pmremGenerator.fromScene(new THREE.Scene()).texture;
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
 
-    // 2. LUZES
+    // 2. ILUMINAÇÃO (Estúdio)
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
 
-    // Luz principal (gera o brilho forte no vidro)
-    const pointLight = new THREE.PointLight(0xffffff, 50);
-    pointLight.position.set(5, 5, 5);
-    scene.add(pointLight);
+    const light = new THREE.PointLight(0xffffff, 100);
+    light.position.set(5, 10, 5);
+    light.castShadow = true;
+    scene.add(light);
 
-    const sideLight = new THREE.SpotLight(0xffffff, 20);
-    sideLight.position.set(-5, 2, 2);
-    scene.add(sideLight);
+    // Reflexo de ambiente (Fake HDR)
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmremGenerator.fromScene(new THREE.Scene()).texture;
 
     // 3. MATERIAIS
-    const glassMaterial = new THREE.MeshPhysicalMaterial({
+    const glassMat = new THREE.MeshPhysicalMaterial({
         color: 0xffffff,
-        metalness: 0.1,
-        roughness: 0.02,
-        transmission: 0.95, // Transparência física
-        thickness: 0.5,
+        metalness: 0,
+        roughness: 0.05,
+        transmission: 1.0,
+        ior: 1.5,
+        thickness: 0.2,
         transparent: true,
-        opacity: 0.5,
-        clearcoat: 1.0, // Camada extra de brilho
-        clearcoatRoughness: 0.05,
-        ior: 1.5, // Índice de refração do vidro
+        opacity: 0.3,
+        side: THREE.DoubleSide
     });
 
-    const yellowMaterial = new THREE.MeshStandardMaterial({ color: '#E0BD1F', roughness: 0.1, metalness: 0.2 });
-    const blueMaterial = new THREE.MeshStandardMaterial({ color: '#1FA4E0', roughness: 0.1, metalness: 0.2 });
+    const liquidMat1 = new THREE.MeshStandardMaterial({ color: '#E0BD1F', roughness: 0.1, metalness: 0.3 });
+    const liquidMat2 = new THREE.MeshStandardMaterial({ color: '#1FA4E0', roughness: 0.1, metalness: 0.3 });
 
-    // 4. GEOMETRIAS (Ajustadas para serem retas: Raio superior = Raio inferior)
-    const cupHeight = 3;
-    const radius = 1; 
-    const cupGeo = new THREE.CylinderGeometry(radius, radius, cupHeight, 64, 1, true);
-    const bottomGeo = new THREE.CylinderGeometry(radius, radius, 0.1, 64);
-    const liquidGeo = new THREE.CylinderGeometry(radius - 0.05, radius - 0.05, 1, 64); // Levemente menor para não atravessar o vidro
+    // 4. ELEMENTOS DA CENA
+    
+    // Chão reflexivo
+    const planeGeo = new THREE.PlaneGeometry(20, 20);
+    const planeMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.2, metalness: 0.8 });
+    const floor = new THREE.Mesh(planeGeo, planeMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -2;
+    floor.receiveShadow = true;
+    scene.add(floor);
 
-    function createCup(xPos, liquidMat) {
+    // Geometrias Retas
+    const cupHeight = 4;
+    const cupGeo = new THREE.CylinderGeometry(1, 1, cupHeight, 64, 1, true);
+    const bottomGeo = new THREE.CylinderGeometry(1, 1, 0.1, 64);
+    const liquidGeo = new THREE.CylinderGeometry(0.95, 0.95, 1, 64);
+
+    function createContainer(xPos, material) {
         const group = new THREE.Group();
         
-        // Vidro lateral
-        const glass = new THREE.Mesh(cupGeo, glassMaterial);
+        const glass = new THREE.Mesh(cupGeo, glassMat);
+        glass.castShadow = true;
         
-        // Fundo do vidro
-        const bottom = new THREE.Mesh(bottomGeo, glassMaterial);
-        bottom.position.y = -cupHeight / 2;
-        
-        // Líquido
-        const liquid = new THREE.Mesh(liquidGeo, liquidMat);
+        const bottom = new THREE.Mesh(bottomGeo, glassMat);
+        bottom.position.y = -cupHeight/2;
+        bottom.castShadow = true;
+
+        const liquid = new THREE.Mesh(liquidGeo, material);
+        liquid.position.x = xPos;
         
         group.add(glass, bottom);
         group.position.x = xPos;
         
         scene.add(group);
         scene.add(liquid);
-        liquid.position.x = xPos;
         
         return liquid;
     }
 
-    const liquidLeft = createCup(-2, yellowMaterial);
-    const liquidRight = createCup(2, blueMaterial);
-
-    camera.position.set(0, 2, 8);
-    camera.lookAt(0, 0, 0);
+    const liqLeft = createContainer(-2.5, liquidMat1);
+    const liqRight = createContainer(2.5, liquidMat2);
 
     // 5. ANIMAÇÃO
     function animate() {
         requestAnimationFrame(animate);
+        controls.update();
 
         const time = Date.now() * 0.002;
         
-        const minHeight = 0.1;
-        const maxHeight = 2.7;
-        const range = (maxHeight - minHeight) / 2;
-        const center = (maxHeight + minHeight) / 2;
+        // Oscilação
+        const h1 = 2 + Math.sin(time) * 1.5;
+        const h2 = 2 - Math.sin(time) * 1.5;
 
-        const offset = Math.sin(time) * range;
-        const h1 = center + offset;
-        const h2 = center - offset;
+        liqLeft.scale.y = h1;
+        liqLeft.position.y = -1.95 + (h1 / 2);
 
-        liquidLeft.scale.y = h1;
-        liquidRight.scale.y = h2;
-
-        // Ajuste da posição baseado no fundo do copo reto
-        liquidLeft.position.y = -1.5 + (h1 / 2);
-        liquidRight.position.y = -1.5 + (h2 / 2);
+        liqRight.scale.y = h2;
+        liqRight.position.y = -1.95 + (h2 / 2);
 
         renderer.render(scene, camera);
     }
