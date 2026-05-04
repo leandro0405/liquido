@@ -3,178 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cena 3D - Copos Longos</title>
+    <title>Animação 3D - Copos Retos com Reflexo</title>
     <style>
-        :root {
-            /* Cores Densas */
-            --cor-azul: rgba(0, 50, 100, 0.95);
-            --cor-azul-brilho: rgba(40, 120, 200, 0.9);
-            --cor-laranja: rgba(130, 40, 0, 0.95);
-            --cor-laranja-brilho: rgba(220, 100, 20, 0.9);
-            
-            --cor-fundo: #222222;
-            --tempo: 5s;
-        }
-
-        body {
-            background-color: var(--cor-fundo);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            gap: 100px; /* Espaço entre os copos */
-            perspective: 1500px;
-        }
-
-        /* --- Container Ajustado (Mais alto e estreito) --- */
-        .container-copo {
-            position: relative;
-            width: 160px; /* Diminuído para ficar menos "gordo" */
-            height: 400px; /* Aumentado para ficar mais alto */
-            transform-style: preserve-3d;
-        }
-
-        /* --- Vidro com Sombreamento Cilíndrico --- */
-        .copo {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(to right, 
-                rgba(255,255,255,0.08) 0%, 
-                rgba(255,255,255,0.01) 15%, 
-                rgba(255,255,255,0) 50%, 
-                rgba(255,255,255,0.01) 85%, 
-                rgba(255,255,255,0.08) 100%);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-bottom-left-radius: 10px 20px;
-            border-bottom-right-radius: 10px 20px;
-            overflow: hidden;
-            z-index: 2;
-            box-shadow: inset 0 0 25px rgba(0,0,0,0.7);
-        }
-
-        /* Reflexo vertical longo */
-        .copo::before {
-            content: '';
-            position: absolute;
-            top: 5%;
-            left: 10%;
-            width: 5px;
-            height: 90%;
-            background: rgba(255, 255, 255, 0.25);
-            filter: blur(2px);
-            z-index: 10;
-        }
-
-        /* Borda Superior (Boca do Copo) */
-        .borda-topo {
-            position: absolute;
-            top: -10px;
-            left: 0;
-            width: 100%;
-            height: 20px;
-            border: 1.5px solid rgba(255, 255, 255, 0.2);
-            background: rgba(255,255,255,0.03);
-            border-radius: 50%;
-            z-index: 5;
-        }
-
-        /* Base do Vidro (Grosso) */
-        .base-vidro {
-            position: absolute;
-            bottom: 0;
-            width: 100%;
-            height: 40px;
-            background: linear-gradient(to bottom, rgba(255,255,255,0.05), rgba(0,0,0,0.5));
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            z-index: 3;
-        }
-
-        /* --- Líquidos --- */
-        .liquido {
-            position: absolute;
-            bottom: 40px;
-            width: 100%;
-            z-index: 2;
-        }
-
-        /* Superfície (Elipse) */
-        .superficie {
-            position: absolute;
-            top: -10px;
-            width: 100%;
-            height: 20px;
-            border-radius: 50%;
-            z-index: 4;
-            border-top: 1px solid rgba(255,255,255,0.3);
-        }
-
-        .azul {
-            background: linear-gradient(to top, var(--cor-azul), #000b1a);
-            animation: gangorra-azul var(--tempo) infinite ease-in-out;
-            box-shadow: inset 10px 0 20px rgba(0,0,0,0.4), inset -10px 0 20px rgba(0,0,0,0.4);
-        }
-        .azul .superficie {
-            background: radial-gradient(circle, var(--cor-azul-brilho) 0%, var(--cor-azul) 80%);
-        }
-
-        .laranja {
-            background: linear-gradient(to top, var(--cor-laranja), #1a0800);
-            animation: gangorra-laranja var(--tempo) infinite ease-in-out;
-            box-shadow: inset 10px 0 20px rgba(0,0,0,0.4), inset -10px 0 20px rgba(0,0,0,0.4);
-        }
-        .laranja .superficie {
-            background: radial-gradient(circle, var(--cor-laranja-brilho) 0%, var(--cor-laranja) 80%);
-        }
-
-        /* --- Keyframes Gangorra --- */
-        @keyframes gangorra-azul {
-            0%, 100% { height: 15%; }
-            50% { height: 85%; }
-        }
-
-        @keyframes gangorra-laranja {
-            0%, 100% { height: 85%; }
-            50% { height: 15%; }
-        }
-
-        /* Sombra de apoio */
-        .sombra-chao {
-            position: absolute;
-            bottom: -30px;
-            width: 100%;
-            height: 20px;
-            background: rgba(0,0,0,0.8);
-            filter: blur(15px);
-            border-radius: 50%;
-            z-index: -1;
-        }
+        body { margin: 0; overflow: hidden; background-color: #222; }
+        canvas { display: block; }
     </style>
 </head>
 <body>
 
-    <div class="container-copo">
-        <div class="borda-topo"></div>
-        <div class="copo">
-            <div class="liquido azul">
-                <div class="superficie"></div>
-            </div>
-            <div class="base-vidro"></div>
-        </div>
-        <div class="sombra-chao"></div>
-    </div>
+<script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+        }
+    }
+</script>
 
-    <div class="container-copo">
-        <div class="borda-topo"></div>
-        <div class="copo">
-            <div class="liquido laranja">
-                <div class="superficie"></div>
-            </div>
-            <div class="base-vidro"></div>
-        </div>
-        <div class="sombra-chao"></div>
-    </div>
+<script type="module">
+    import * as THREE from 'three';
 
-</body>
-</html>
+    // 1. CENA E FUNDO
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#111'); // Fundo levemente mais escuro para destacar o reflexo
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    // Configurações para melhor renderização de brilho e reflexo
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    document.body.appendChild(renderer.domElement);
+
+    // 2. LUZES (Ajustadas para criar reflexos)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    scene.add(ambientLight);
+
+    const mainLight = new THREE.DirectionalLight(0xffffff, 2);
+    mainLight.position.set(5, 10, 7);
+    scene.add(mainLight);
+
+    // Luz pontual para criar o brilho "especular" no vidro
+    const pointLight = new THREE.PointLight(0xffffff, 15);
+    pointLight.position.set(-2, 2, 4);
+    scene.add(pointLight);
+
+    // 3. MATERIAIS
+    const glassMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xffffff,
+        transmission: 0.95, // Alta transparência
+        roughness: 0.02,    // Superfície lisa
+        ior: 1.5,           // Índice de refração do vidro
+        thickness: 0.1,     // Espessura do vidro
+        specularIntensity: 1,
+        clearcoat: 1.0,     // Adiciona camada de brilho extra
+        clearcoatRoughness: 0.05,
+        transparent: true,
+        opacity: 0.5
+    });
+
+    const yellowMaterial = new THREE.MeshStandardMaterial({ color: '#E0BD1F', roughness: 0.3 });
+    const blueMaterial = new THREE.MeshStandardMaterial({ color: '#1FA4E0', roughness: 0.3 });
+
+    // 4. GEOMETRIAS (Copo Reto)
+    const cupHeight = 3;
+    const radius = 1; // Mesmo raio em cima e embaixo para ser reto
+    
+    // Copo reto (openEnded: true para não ter tampa)
+    const cupGeo = new THREE.CylinderGeometry(radius, radius, cupHeight, 64, 1, true);
+    const bottomGeo = new THREE.CylinderGeometry(radius, radius, 0.05, 64);
+    const liquidGeo = new THREE.CylinderGeometry(radius - 0.05, radius - 0.05, 1, 64);
+
+    // Função para criar o conjunto copo + líquido
+    function createCup(xPos, liquidMat) {
+        const group = new THREE.Group();
+        
+        // Vidro lateral
+        const glass = new THREE.Mesh(cupGeo, glassMaterial);
+        
+        // Fundo do vidro
+        const bottom = new THREE.Mesh(bottomGeo, glassMaterial);
+        bottom.position.y = -cupHeight / 2;
+        
+        // Líquido
+        const liquid = new THREE.Mesh(liquidGeo, liquidMat);
+        
+        group.add(glass, bottom);
+        group.position.x = xPos;
+        
+        scene.add(group);
+        scene.add(liquid);
+        liquid.position.x = xPos;
+        
+        return liquid;
+    }
+
+    const liquidLeft = createCup(-2, yellowMaterial);
+    const liquidRight = createCup(2, blueMaterial);
+
+    camera.position.set(0, 2, 8);
+    camera.lookAt(0, 0, 0);
+
+    // 5. ANIMAÇÃO
+    function animate() {
+        requestAnimationFrame(animate);
+
+        const time = Date.now() * 0.002;
+        
+        const minHeight = 0.1;
+        const maxHeight = 2.8;
+        const range = (maxHeight - minHeight) / 2;
+        const center = (maxHeight + minHeight) / 2;
